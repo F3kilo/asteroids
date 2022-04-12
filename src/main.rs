@@ -55,13 +55,16 @@ impl Game {
         self.asteroids.retain(|asteroid| !asteroid.out_of_bounds());
         for asteroid in &mut self.asteroids {
             asteroid.update(elapsed_time, self.ship.vertical_speed());
+            if self.ship.is_collapse(asteroid.position, asteroid.radius) {
+                return Some(self.game_time());
+            }
         }
 
         self.last_update = get_time();
         None
     }
 
-    fn time(&self) -> f64 {
+    fn game_time(&self) -> f64 {
         get_time() - self.start_time
     }
 
@@ -83,7 +86,7 @@ impl Game {
         let text_size = measure_text(&text, None, font_size as _, 1.0);
         draw_text(&text, 0.0, screen_height(), font_size, BLACK);
 
-        let text = format!("Your time: {:.2}", self.time());
+        let text = format!("Your time: {:.2}", self.game_time());
         draw_text(
             &text,
             0.0,
@@ -166,6 +169,15 @@ impl Ship {
     const SHIP_WIDTH: f32 = 25.0;
     const SHIP_HEIGHT: f32 = 50.0;
     const SHIP_OFFSET: f32 = 30.0;
+
+    pub fn is_collapse(&self, point: Vec2, radius: f32) -> bool {
+        let ship_radius = (Self::SHIP_WIDTH + Self::SHIP_HEIGHT) / 4.0;
+        let ship_center = Vec2::new(
+            self.position,
+            screen_height() - Self::SHIP_OFFSET,
+        );
+        (point - ship_center).length() < radius + ship_radius
+    }
 
     pub fn update(&mut self, elapsed_time: f64) {
         const ACCELERATION: f32 = 200.0;
