@@ -1,3 +1,4 @@
+use crate::rand::RandomRange;
 use macroquad::prelude::*;
 
 #[macroquad::main("Asteroids")]
@@ -18,6 +19,8 @@ struct Game {
     start_time: f64,
     last_update: f64,
     ship: Ship,
+    asteroid_timer: f64,
+    asteroids: Vec<Asteroid>,
 }
 
 impl Default for Game {
@@ -27,6 +30,8 @@ impl Default for Game {
             start_time: time,
             last_update: time,
             ship: Ship::default(),
+            asteroid_timer: 0.0,
+            asteroids: Vec::with_capacity(100),
         }
     }
 }
@@ -38,8 +43,19 @@ impl Game {
         }
 
         let elapsed_time = self.elapsed_time();
+        self.asteroid_timer += elapsed_time;
+
+        if self.asteroid_timer > 0.5 {
+            self.asteroid_timer = 0.0;
+            self.asteroids.push(Asteroid::default());
+        }
 
         self.ship.update(elapsed_time);
+
+        self.asteroids.retain(|asteroid| !asteroid.out_of_bounds());
+        for asteroid in &mut self.asteroids {
+            asteroid.update(elapsed_time, self.ship.vertical_speed());
+        }
 
         self.last_update = get_time();
         None
@@ -56,6 +72,9 @@ impl Game {
     pub fn draw(&self, best_time: f64) {
         self.draw_time(best_time);
         self.ship.draw();
+        for asteroid in &self.asteroids {
+            asteroid.draw();
+        }
     }
 
     fn draw_time(&self, best_time: f64) {
@@ -130,6 +149,7 @@ impl State {
 pub struct Ship {
     position: f32,
     speed: f32,
+    vertical_speed: f32,
 }
 
 impl Default for Ship {
@@ -137,6 +157,7 @@ impl Default for Ship {
         Self {
             position: screen_width() / 2.0,
             speed: 0.0,
+            vertical_speed: 100.0,
         }
     }
 }
@@ -148,6 +169,7 @@ impl Ship {
 
     pub fn update(&mut self, elapsed_time: f64) {
         const ACCELERATION: f32 = 200.0;
+        const VERTICAL_ACCELERATION: f32 = 50.0;
         const DECELERATION: f32 = 180.0;
         let elapsed_time = elapsed_time as f32;
 
@@ -166,6 +188,8 @@ impl Ship {
             Self::SHIP_WIDTH / 2.0,
             screen_width() - Self::SHIP_WIDTH / 2.0,
         );
+
+        self.vertical_speed += VERTICAL_ACCELERATION * elapsed_time;
     }
 
     pub fn draw(&self) {
@@ -182,5 +206,54 @@ impl Ship {
             screen_height() - Self::SHIP_OFFSET,
         );
         draw_triangle(top, right, left, WHITE)
+    }
+
+    pub fn vertical_speed(&self) -> f32 {
+        self.vertical_speed
+    }
+}
+
+struct Asteroid {
+    position: Vec2,
+    speed: Vec2,
+    radius: f32,
+}
+
+impl Default for Asteroid {
+    fn default() -> Self {
+        let x = f32::gen_range(0.0, screen_width());
+        let y = -2.0 * Self::MAX_RADIUS;
+
+        let speed_x = f32::gen_range(0.0, Self::MAX_SPEED);
+        let speed_y = f32::gen_range(0.0, Self::MAX_SPEED);
+        Self {
+            position: Vec2::new(x, y),
+            speed: Vec2::new(speed_x, speed_y),
+            radius: f32::gen_range(Self::MIN_RADIUS, Self::MAX_RADIUS),
+        }
+    }
+}
+
+impl Asteroid {
+    const MIN_RADIUS: f32 = 25.0;
+    const MAX_RADIUS: f32 = 100.0;
+    const MAX_SPEED: f32 = 100.0;
+
+    pub fn out_of_bounds(&self) -> bool {
+        let (x, y) = (self.position.x, self.position.y);
+        let left = -3.0 * Self::MAX_RADIUS;
+        let right = screen_width() + 3.0 * Self::MAX_RADIUS;
+        let bottom = screen_height() + 3.0 * Self::MAX_RADIUS;
+        x < left || x > right || y > bottom
+    }
+
+    pub fn update(&mut self, elapsed_time: f64, ship_speed: f32) {
+        let elapsed_time = elapsed_time as f32;
+        self.position += self.speed * elapsed_time;
+        self.position.y += ship_speed * elapsed_time;
+    }
+
+    pub fn draw(&self) {
+        draw_circle(self.position.x, self.position.y, self.radius, LIGHTGRAY);
     }
 }
