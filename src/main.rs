@@ -1,5 +1,5 @@
 //! Пример мини-игры с использованием macroquad.
-//! Управляем небольши кораблём, уклоняясь от астероидов.
+//! Управляем небольшим кораблём, уклоняясь от астероидов.
 //! Задача: продержаться как можно дольше.
 
 use crate::rand::RandomRange;
@@ -28,7 +28,7 @@ async fn main() {
     }
 }
 
-/// Состояние игры.
+/// Состояние приложения.
 struct State {
     /// Рекорное время.
     best_time: f64,
@@ -73,7 +73,7 @@ impl State {
         }
     }
 
-    /// Отображение игры.
+    /// Отображение приложения.
     pub fn draw(&self) {
         // Если игра запущена - отображаем её,
         if let Some(game) = &self.game {
@@ -167,16 +167,6 @@ impl Game {
         None // Игра продолжается.
     }
 
-    /// Время в текущей игре.
-    fn game_time(&self) -> f64 {
-        get_time() - self.start_time
-    }
-
-    /// Время, прошедшее с последнего обновления.
-    fn elapsed_time(&self) -> f64 {
-        get_time() - self.last_update
-    }
-
     /// Отображаем игру.
     pub fn draw(&self, best_time: f64) {
         self.draw_time(best_time); // Отображаем текст с лучшим и текущим временем.
@@ -186,6 +176,16 @@ impl Game {
         for asteroid in &self.asteroids {
             asteroid.draw();
         }
+    }
+
+    /// Время в текущей игре.
+    fn game_time(&self) -> f64 {
+        get_time() - self.start_time
+    }
+
+    /// Время, прошедшее с последнего обновления.
+    fn elapsed_time(&self) -> f64 {
+        get_time() - self.last_update
     }
 
     /// Отображаем текст с лучшим и текущим временем.
@@ -236,18 +236,6 @@ impl Ship {
     const SHIP_WIDTH: f32 = 25.0;
     const SHIP_HEIGHT: f32 = 50.0;
     const SHIP_OFFSET: f32 = 30.0;
-
-    /// Столкнулся ли корабль с кругом с центром в `point` и радиусом `radius`.
-    pub fn is_collapse(&self, point: Vec2, radius: f32) -> bool {
-        // Вычисляем приблизительный радиус корабля.
-        let ship_radius = (Self::SHIP_WIDTH + Self::SHIP_HEIGHT) / 4.0;
-
-        // Вычисляем положение центра корабля.
-        let ship_center = Vec2::new(self.position, screen_height() - Self::SHIP_OFFSET);
-
-        // Проверяем, не пересекаются ли радиусы корабля и круга.
-        (point - ship_center).length() < radius + ship_radius
-    }
 
     /// Логика обновления корабля.
     pub fn update(&mut self, elapsed_time: f64) {
@@ -300,6 +288,18 @@ impl Ship {
 
         // Отображаем треугольник.
         draw_triangle(top, right, left, WHITE)
+    }
+
+    /// Столкнулся ли корабль с кругом с центром в `point` и радиусом `radius`.
+    pub fn is_collapse(&self, point: Vec2, radius: f32) -> bool {
+        // Вычисляем приблизительный радиус корабля.
+        let ship_radius = (Self::SHIP_WIDTH + Self::SHIP_HEIGHT) / 4.0;
+
+        // Вычисляем положение центра корабля.
+        let ship_center = Vec2::new(self.position, screen_height() - Self::SHIP_OFFSET);
+
+        // Проверяем, не пересекаются ли радиусы корабля и круга.
+        (point - ship_center).length() < radius + ship_radius
     }
 
     /// Скорость корабля по вертикали.
